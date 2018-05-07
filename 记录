@@ -1,0 +1,5 @@
+gcc -rdynamic -o postgres SUBSYS.o -ldl
+
+commands/copy.c
+
+/home/ubuntu/Postgresql/postgresql-v6.0/src/backend/utils/init/postinit.c

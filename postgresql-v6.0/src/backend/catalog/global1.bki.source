@@ -1,0 +1,81 @@
+# 1 "<stdin>"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "/usr/include/stdc-predef.h" 1 3 4
+# 1 "<command-line>" 2
+# 1 "<stdin>"
+create bootstrap pg_database
+ (
+ datname = ame ,
+ datdba = oid ,
+ datpath = text
+ )
+close pg_database
+create bootstrap pg_demon
+ (
+ demserid = oid ,
+ demname = ame ,
+ demowner = oid ,
+ demcode = regproc
+ )
+close pg_demon
+create bootstrap pg_magic
+ (
+ magname = ame ,
+ magvalue = ame
+ )
+close pg_magic
+create bootstrap pg_defaults
+ (
+ defname = ame ,
+ defvalue = ame
+ )
+close pg_defaults
+create bootstrap pg_variable
+ (
+ varfoo = oid
+ )
+close pg_variable
+create bootstrap pg_server
+ (
+ sername = ame ,
+ serpid = int2 ,
+ serport = int2
+ )
+close pg_server
+create bootstrap pg_user
+ (
+ usename = ame ,
+ usesysid = int4 ,
+ usecreatedb = bool ,
+ usetrace = bool ,
+ usesuper = bool ,
+ usecatupd = bool
+ )
+insert OID = 0 ( postgres PGUID t t t t )
+# 74 "<stdin>"
+close pg_user
+create bootstrap pg_hosts
+ (
+ dbName = ame ,
+ address = text ,
+ mask = text
+ )
+close pg_hosts
+create bootstrap pg_group
+ (
+ groname = ame ,
+ grosysid = int4 ,
+ grolist = int4[]
+ )
+close pg_group
+create bootstrap pg_log
+ (
+ logfoo = oid
+ )
+close pg_log
+create bootstrap pg_time
+ (
+ timefoo = oid
+ )
+close pg_time

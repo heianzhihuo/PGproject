@@ -1,0 +1,33 @@
+#-------------------------------------------------------------------------
+#
+# Makefile.inc--
+#    global configurations for Makefiles in src/bin
+#
+# Copyright (c) 1994, Regents of the University of California
+#
+#
+# IDENTIFICATION
+#    $Header: /usr/local/cvsroot/postgres95/src/bin/Makefile.global,v 1.13 1997/01/15 05:58:47 scrappy Exp $
+#
+#-------------------------------------------------------------------------
+
+LIBPQDIR:= $(SRCDIR)/libpq
+
+#LD_ADD+= -L$(SRCDIR)/libpq -lpq
+#DPADD+= -L$(SRCDIR)/libpq -lpq
+
+#
+# And where libpq goes, so goes the authentication stuff...
+#
+ifdef KRBVERS
+LD_ADD+= $(KRBLIBS)
+CFLAGS+= $(KRBFLAGS)
+endif
+
+
+INCLUDE_OPT := \
+               -I$(LIBPQDIR) \
+               -I$(SRCDIR)/include 
+
+CFLAGS += $(INCLUDE_OPT) 
+

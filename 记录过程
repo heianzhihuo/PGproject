@@ -1,0 +1,399 @@
+需要的外部包：
+catalog/catname.h
+miscadmin.h
+nodes/memnodes.h
+postgres.h
+utils/mcxt.h
+access/transam.h
+
+
+
+
+
+ 
+
+/backend
+
+/storage/smgr/smgr.c 提供对存储操作的统一接口，
+/storage/smgr/mm.c 主存管理器，relations在内存中的存储
+/storage/smgr/md.c 磁盘管理器，是SMGR的一种具体实现,通过VFD机制来实现对文件的操作，relations在磁盘中的存储
+/storage/smgr/smgrtype.c 存储管理的类型
+
+/storage/file/fd.c 虚拟文件描述符代码 * VFD机制的实现&LRU池
+
+FSM未找到
+TOAST未找到
+
+/storage/large_object/inv_api.c 大对象的操作
+
+/storage/buffer/ 缓冲池管理
+	/buf_init.c 初始化缓冲池
+	/bufmgr.c 缓冲池管理器
+		BufferAlloc:在缓冲池中查找buffer，如果不存在，则增加一个Buffer
+		WriteBuffer:写一个buffer
+		ReadBuffer:读一个buffer
+		FlushBuffer:强制将页写回到硬盘
+		FlushBufferPool:强制将所有脏buffer写回到硬盘
+		ReleaseBuffer:释放buffer
+	/freelist.c buffer替换策略，LRU策略
+	/buf_table.c 缓冲区表，缓冲快查找
+	/localbuf.c 本地缓冲池管理
+
+/storage/ipc/ 共享内存管理，进程间通信
+	ipc.c 提供了共享内存和信号量进行初始化的借口
+
+
+/storage/lmgr/ 锁管理
+
+/storage/page/
+
+内存管理
+/backend/utils/mmgr
+
+
+
+
+void
+RelationPutHeapTupleAtEnd(Relation relation, HeapTuple tuple)
+{
+    Buffer		buffer;
+    Page		pageHeader;
+    BlockNumber		lastblock;
+    OffsetNumber	offnum;
+    unsigned int	len;
+    ItemId		itemId;
+    Item		item;
+    
+    Assert(RelationIsValid(relation));
+    Assert(HeapTupleIsValid(tuple));
+    
+    /*
+     * XXX This does an lseek - VERY expensive - but at the moment it
+     * is the only way to accurately determine how many blocks are in
+     * a relation.  A good optimization would be to get this to actually
+     * work properly.
+     */
+    
+    lastblock = RelationGetNumberOfBlocks(relation);
+    
+    if (lastblock == 0)
+	{
+	    buffer = ReadBuffer(relation, lastblock);
+	    pageHeader = (Page)BufferGetPage(buffer);
+	    if (PageIsNew((PageHeader) pageHeader))
+		{
+		    buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
+		    pageHeader = (Page)BufferGetPage(buffer);
+		    PageInit(pageHeader, BufferGetPageSize(buffer), 0);
+		}
+	}
+    else
+	buffer = ReadBuffer(relation, lastblock - 1);
+    
+    pageHeader = (Page)BufferGetPage(buffer);
+    len = (unsigned)DOUBLEALIGN(tuple->t_len);	/* be conservative */
+    
+    /*
+     * Note that this is true if the above returned a bogus page, which
+     * it will do for a completely empty relation.
+     */
+    
+    if (len > PageGetFreeSpace(pageHeader))
+	{
+	    buffer = ReleaseAndReadBuffer(buffer, relation, P_NEW);
+	    pageHeader = (Page)BufferGetPage(buffer);
+	    PageInit(pageHeader, BufferGetPageSize(buffer), 0);
+	    
+	    if (len > PageGetFreeSpace(pageHeader))
+		elog(WARN, "Tuple is too big: size %d", len);
+	}
+    
+    offnum = PageAddItem((Page)pageHeader, (Item)tuple,
+			 tuple->t_len, InvalidOffsetNumber, LP_USED);
+    
+    itemId = PageGetItemId((Page)pageHeader, offnum);
+    item = PageGetItem((Page)pageHeader, itemId);
+    
+    lastblock = BufferGetBlockNumber(buffer);
+    
+    ItemPointerSet(&((HeapTuple)item)->t_ctid, lastblock, offnum);
+    /* return an accurate tuple */
+    ItemPointerSet(&tuple->t_ctid, lastblock, offnum);
+    
+    WriteBuffer(buffer);
+}
+
+
+
+
+
+Postgresql 向一个relation添加元组
+获取块，RelationGetNumberOfBlocks(relation)
+获取buffer，buffer = ReadBuffer(relation, lastblock);
+获取pageHeader，pageHeader = (Page)BufferGetPage(buffer);
+初始化page，PageInit(pageHeader, BufferGetPageSize(buffer), 0);
+向page中添加Item，PageAddItem((Page)pageHeader, (Item)tuple,tuple->t_len, InvalidOffsetNumber, LP_USED);
+最后WriteBuffer(buffer)
+
+
+
+
+记录过程，如何使用relation
+create relation
+
+
+
+
+存取过程
+创建文件：在哪个代码中，如何创建文件，用到了什么数据结构，有哪些用处，
+md.c中：int mdcreate(Relation reln)
+int
+mdcreate(Relation reln)
+{
+    int fd, vfd;
+    int tmp;
+    char *path;
+    extern bool IsBootstrapProcessingMode();
+
+    path = relpath(&(reln->rd_rel->relname.data[0]));
+    fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
+
+    /*
+     *  If the file already exists and is empty, we pretend that the
+     *  create succeeded.  During bootstrap processing, we skip that check,
+     *  because pg_time, pg_variable, and pg_log get created before their
+     *  .bki file entries are processed.
+     */
+
+    if (fd < 0) {
+	if ((fd = FileNameOpenFile(path, O_RDWR, 0600)) >= 0) {
+	    if (!IsBootstrapProcessingMode() &&
+		FileRead(fd, (char *) &tmp, sizeof(tmp)) != 0) {
+		FileClose(fd);
+		return (-1);
+	    }
+	}
+    }
+
+    if (CurFd >= Nfds) {
+	if (_fdvec_ext() == SM_FAIL)
+	    return (-1);
+    }
+
+    Md_fdvec[CurFd].mdfd_vfd = fd;
+    Md_fdvec[CurFd].mdfd_flags = (uint16) 0;
+    Md_fdvec[CurFd].mdfd_chain = (MdfdVec *) NULL;
+    Md_fdvec[CurFd].mdfd_lstbcnt = 0;
+
+    vfd = CurFd++;
+
+    return (vfd);
+}
+数据结构Relation，RelationData，用到了rd_rel->relname.data[0]
+	
+
+打开文件
+分配Buffer
+读Buffer
+写Buffer
+
+
+
+
+
+如何创建文件，在mdcreate(Relation reln)中
+在什么时候新建的文件，什么时候有的reln
+先有reln，后有文件，然后将文件的fd给reln->rd_fd
+reln 是如何来的
+
+Relation
+heap_creatr(char *name, 
+	    unsigned smgr,
+	    TupleDesc tupDesc) 
+{
+    register unsigned	i;
+    Oid		relid;
+    Relation		rdesc;
+    int			len;
+    bool		nailme = false;
+    char*               relname = name;
+    char                tempname[40];
+    int isTemp = 0;
+    int natts = tupDesc->natts;
+/*    AttributeTupleForm *att = tupDesc->attrs; */
+    
+    extern GlobalMemory	CacheCxt;
+    MemoryContext	oldcxt;
+
+    /* ----------------
+     *	sanity checks
+     * ----------------
+     */
+    AssertArg(natts > 0);
+
+    if (IsSystemRelationName(relname) && IsNormalProcessingMode())
+	{
+	    elog(WARN, 
+		 "Illegal class name: %s -- pg_ is reserved for system catalogs",
+		 relname);
+	}
+    
+    /* ----------------
+     *	switch to the cache context so that we don't lose
+     *  allocations at the end of this transaction, I guess.
+     *  -cim 6/14/90
+     * ----------------
+     */
+    if (!CacheCxt)
+	CacheCxt = CreateGlobalMemory("Cache");
+    
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
+    
+    /* ----------------
+     *	real ugly stuff to assign the proper relid in the relation
+     *  descriptor follows.
+     * ----------------
+     */
+    if (! strcmp(RelationRelationName,relname))
+	{
+	    relid = RelOid_pg_class;
+	    nailme = true;
+	}
+    else if (! strcmp(AttributeRelationName,relname))
+	{
+	    relid = RelOid_pg_attribute;
+	    nailme = true;
+	}
+    else if (! strcmp(ProcedureRelationName, relname))
+	{
+	    relid = RelOid_pg_proc;
+	    nailme = true;
+	}
+    else if (! strcmp(TypeRelationName,relname))
+	{
+	    relid = RelOid_pg_type;
+	    nailme = true;
+	}
+    else
+      {
+	relid = newoid();
+    
+	if (name[0] == '\0')
+	  {
+	    sprintf(tempname, "temp_%d", relid);
+	    relname = tempname;
+	    isTemp = 1;
+	  };
+      }
+
+    /* ----------------
+     *	allocate a new relation descriptor.
+     *
+     * 	XXX the length computation may be incorrect, handle elsewhere
+     * ----------------
+     */
+    len = sizeof(RelationData);
+  
+    rdesc = (Relation) palloc(len);
+    memset((char *)rdesc, 0,len);
+    
+    /* ----------
+       create a new tuple descriptor from the one passed in
+    */
+    rdesc->rd_att = CreateTupleDescCopy(tupDesc);
+    
+    /* ----------------
+     *	initialize the fields of our new relation descriptor
+     * ----------------
+     */
+    
+    /* ----------------
+     *  nail the reldesc if this is a bootstrap create reln and
+     *  we may need it in the cache later on in the bootstrap
+     *  process so we don't ever want it kicked out.  e.g. pg_attribute!!!
+     * ----------------
+     */
+    if (nailme)
+	rdesc->rd_isnailed = true;
+    
+    RelationSetReferenceCount(rdesc, 1);
+    
+    rdesc->rd_rel = (Form_pg_class)palloc(sizeof *rdesc->rd_rel);
+    
+    memset((char *)rdesc->rd_rel, 0,
+	   sizeof *rdesc->rd_rel);
+    namestrcpy(&(rdesc->rd_rel->relname), relname); 
+    rdesc->rd_rel->relkind = RELKIND_UNCATALOGED;
+    rdesc->rd_rel->relnatts = natts;
+    rdesc->rd_rel->relsmgr = smgr;
+    
+    for (i = 0; i < natts; i++) {
+	rdesc->rd_att->attrs[i]->attrelid = relid;
+    }
+    
+    rdesc->rd_id = relid;
+    
+     if (nailme) {
+ 	/* for system relations, set the reltype field here */
+ 	rdesc->rd_rel->reltype = relid;
+     }
+
+    /* ----------------
+     *  remember if this is a temp relation
+     * ----------------
+     */
+
+    rdesc->rd_istemp = isTemp;
+    
+    /* ----------------
+     *	have the storage manager create the relation.
+     * ----------------
+     */
+    
+    rdesc->rd_tmpunlinked = TRUE;	/* change once table is created */
+    rdesc->rd_fd = (File)smgrcreate(smgr, rdesc);
+    rdesc->rd_tmpunlinked = FALSE;
+    
+    RelationRegisterRelation(rdesc);
+    
+    MemoryContextSwitchTo(oldcxt);
+    
+    /* add all temporary relations to the tempRels list
+       so they can be properly disposed of at the end of transaction
+    */
+    if (isTemp)
+	AddToTempRelList(rdesc);
+
+    return (rdesc);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

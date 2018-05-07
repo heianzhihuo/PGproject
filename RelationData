@@ -1,0 +1,39 @@
+typedef struct RelationData {
+    File		rd_fd; 		/* open file descriptor */
+    int                 rd_nblocks;	/* number of blocks in rel */
+    uint16		rd_refcnt; 	/* reference count */
+    bool		rd_islocal; 	/* uses the local buffer mgr */
+    bool		rd_isnailed; 	/* rel is nailed in cache */
+    bool		rd_istemp;	/* rel is a temp rel */
+    bool		rd_tmpunlinked;	/* temp rel already unlinked */
+    Form_pg_am 		rd_am; 		/* AM tuple */
+    Form_pg_class	rd_rel;		/* RELATION tuple */
+    Oid			rd_id;		/* relations's object id */
+    Pointer		lockInfo; 	/* ptr. to misc. info. */
+    TupleDesc           rd_att;		/* tuple desciptor,元组描述符 */
+    RuleLock		*rd_rules;	/* rewrite rules */
+    IndexStrategy       rd_istrat;    
+    RegProcedure*       rd_support;
+} RelationData;
+
+
+其中relation是通过函数RelationBuildDesc(RelationBuildDescInfo buildinfo)来创建的
+，从而可以通过系统自动分配文件
+
+RelationBuildDescInfo结构中，有一个字段可以区分不同的relation，这个字段可以确定文件
+
+typedef struct RelationBuildDescInfo {
+    int infotype;		/* lookup by id or by name */
+#define INFO_RELID 1
+#define INFO_RELNAME 2
+    union {
+	Oid info_id;	/* relation object id */
+	char *info_name;	/* relation name */
+    } i;
+} RelationBuildDescInfo;
+
+
+通过Relation和blocknumber获取Buffer
+ ReadBuffer(relation, lastblock);
+可以直接用relation创建一个buffer
+

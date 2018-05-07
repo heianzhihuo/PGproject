@@ -1,0 +1,29 @@
+#-------------------------------------------------------------------------
+#
+# Makefile--
+#    Makefile for the access methods module
+#
+# IDENTIFICATION
+#    $Header: /usr/local/cvsroot/postgres95/src/backend/access/Makefile,v 1.2 1996/11/10 03:11:46 bryanh Exp $
+#
+#-------------------------------------------------------------------------
+
+OBJS = transam/SUBSYS.o
+
+
+all: submake SUBSYS.o
+
+SUBSYS.o: $(OBJS)
+	$(LD) -r -o SUBSYS.o $(OBJS)
+
+.PHONY: submake
+submake:
+	$(MAKE) -C transam SUBSYS.o
+
+clean:
+	rm -f SUBSYS.o
+	$(MAKE) -C transam  clean
+
+.DEFAULT: 
+	$(MAKE) -C transam  $@
+
