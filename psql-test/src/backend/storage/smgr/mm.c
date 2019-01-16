@@ -178,7 +178,8 @@ mmcreate(Relation reln)
 	tag.mmrt_dbid = (Oid) 0;
     else
 	tag.mmrt_dbid = MyDatabaseId;
-
+	
+	
     entry = (MMRelHashEntry *) hash_search(MMRelCacheHT,
 					   (char *) &tag, HASH_ENTER, &found);
 
@@ -219,7 +220,7 @@ mmunlink(Relation reln)
 	reldbid = MyDatabaseId;
 
     SpinAcquire(MMCacheLock);
-
+	
     for (i = 0; i < MMNBUFFERS; i++) {
 	if (MMBlockTags[i].mmct_dbid == reldbid
 	    && MMBlockTags[i].mmct_relid == reln->rd_id) {
@@ -237,7 +238,7 @@ mmunlink(Relation reln)
     }
     rtag.mmrt_dbid = reldbid;
     rtag.mmrt_relid = reln->rd_id;
-
+	
     rentry = (MMRelHashEntry *) hash_search(MMRelCacheHT, (char *) &rtag,
 					    HASH_REMOVE, &found);
 

@@ -8,7 +8,7 @@
 #
 #-------------------------------------------------------------------------
 
-OBJS = transam/SUBSYS.o common/SUBSYS.o
+OBJS = transam/SUBSYS.o common/SUBSYS.o 
 
 
 all: submake SUBSYS.o

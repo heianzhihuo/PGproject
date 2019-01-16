@@ -22,7 +22,6 @@
 
 #include "nodes/memnodes.h"
 
-#include "utils/palloc.h"
 
 /* ----------------------------------------------------------------
  *	User library functions
@@ -35,6 +34,7 @@
 #undef MemoryContextFree
 #undef malloc
 #undef free
+//#define PALLOC_IS_MALLOC true
 
 /* define PALLOC_IS_MALLOC if you want palloc to go straight to the 
    raw malloc, without concern for the extra bookkeeping needed to

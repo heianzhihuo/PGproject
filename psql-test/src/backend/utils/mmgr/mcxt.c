@@ -146,10 +146,11 @@ EnableMemoryContext(bool on)
     
     AssertState(!processing);
     AssertArg(BoolIsValid(on));
-    
- //    if (BypassEnable(&MemoryContextEnableCount, on)) {
-	// return;
- //    }
+ 	
+	//MemoryContextEnableCount = 1;
+    if (BypassEnable(&MemoryContextEnableCount, on)) {
+ 		return;
+  	}
     
     processing = true;
     
@@ -219,7 +220,6 @@ MemoryContextAlloc(MemoryContext context, Size size)
     
     LogTrap(!AllocSizeIsValid(size), BadAllocSize,
 	    ("size=%d [0x%x]", size, size));
-    
     return (context->method->alloc(context, size));
 }
 

@@ -230,5 +230,9 @@ extern int FlushLocalBuffer(Buffer buffer, bool release);
 extern void InitLocalBuffer(void);
 extern void LocalBufferSync(void);
 extern void ResetLocalBufferPool(void);
+Relation RelationIdCacheGetRelation(BufferDesc *buf);
      
 #endif	/* BUFMGR_INTERNALS_H */
+
+
+

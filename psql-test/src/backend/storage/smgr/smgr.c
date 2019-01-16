@@ -158,7 +158,9 @@ int
 smgrextend(int16 which, Relation reln, char *buffer)
 {
     int status;
-
+	
+	
+		
     status = (*(smgrsw[which].smgr_extend))(reln, buffer);
 
     if (status == SM_FAIL)

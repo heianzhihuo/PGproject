@@ -50,7 +50,7 @@
 #include "postgres.h"
 #include "miscadmin.h"  /* for DataDir */
 #include "utils/palloc.h"
-#include "storage/fd.h"
+
 
 /*
  * Problem: Postgres does a system(ld...) to do dynamic loading.  This
@@ -470,21 +470,23 @@ filepath(char *filename)
     char *buf;
     char basename[16];
     int len;
-
+	
 #ifndef WIN32    
     if (*filename != Sep_char) {
 #else
     if (!(filename[1] == ':' && filename[2] == Sep_char)) {
 #endif /* WIN32 */      
-
+		
         /* Either /base/ or \base\ */
         sprintf(basename, "%cbase%c", Sep_char, Sep_char);
-
+		
         len = strlen(DataDir) + strlen(basename) + strlen(GetDatabaseName())
             + strlen(filename) + 2;
+
         buf = (char*) palloc(len);
         sprintf(buf, "%s%s%s%c%s",
                 DataDir, basename, GetDatabaseName(), Sep_char, filename);
+		
     } else {
         buf = (char *) palloc(strlen(filename) + 1);
         strcpy(buf, filename);
@@ -581,7 +583,9 @@ fileNameOpenFile(FileName fileName,
 #endif /* WIN32 */
     vfdP->fd = open(fileName,fileFlags,fileMode);
     vfdP->fdstate = 0x0;
-    
+
+	//printf("VFD:%d\n",vfdP->fd);    
+
     if (vfdP->fd < 0) {
         FreeVfd(file);
         return -1;
@@ -602,6 +606,7 @@ fileNameOpenFile(FileName fileName,
     vfdP->fileMode = fileMode;
     vfdP->seekPos = 0;
     
+	//printf("VFD:%d\n",file);
     return file;
 }
 
@@ -613,7 +618,6 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 {
     File fd;
     char *fname;
-    
     fname = filepath(fileName);
     fd = fileNameOpenFile(fname, fileFlags, fileMode);
     pfree(fname);
@@ -728,7 +732,6 @@ int
 FileWrite(File file, char *buffer, int amount)
 {
     int returnCode;
-
     DO_DB(printf("DB: FileWrite: %d (%s) %d 0x%lx\n",
                  file, VfdCache[file].fileName, amount, buffer));
     

@@ -321,7 +321,7 @@ scan_pg_rel_seq(RelationBuildDescInfo buildinfo)
      *	form a scan key
      * ----------------
      */
-    switch (buildinfo.infotype) {
+    /*switch (buildinfo.infotype) {
     case INFO_RELID:
 	ScanKeyEntryInitialize(&key, 0,
 			       ObjectIdAttributeNumber,
@@ -341,10 +341,10 @@ scan_pg_rel_seq(RelationBuildDescInfo buildinfo)
 	return NULL;
     }
     
-    /* ----------------
+     ----------------
      *	open pg_class and fetch a tuple
      * ----------------
-     */
+
     pg_class_desc =  heap_openr(RelationRelationName);
     if (!IsInitProcessingMode())
 	RelationSetLockForRead(pg_class_desc);
@@ -352,20 +352,20 @@ scan_pg_rel_seq(RelationBuildDescInfo buildinfo)
 	heap_beginscan(pg_class_desc, 0, NowTimeQual, 1, &key);
     pg_class_tuple = heap_getnext(pg_class_scan, 0, &buf);
     
-    /* ----------------
+     ----------------
      *	get set to return tuple
      * ----------------
-     */
+
     if (! HeapTupleIsValid(pg_class_tuple)) {
 	return_tuple = pg_class_tuple;
     } else {
-	/* ------------------
+	 ------------------
 	 *  a satanic bug used to live here: pg_class_tuple used to be
 	 *  returned here without having the corresponding buffer pinned.
 	 *  so when the buffer gets replaced, all hell breaks loose.
 	 *  this bug is discovered and killed by wei on 9/27/91.
 	 * -------------------
-	 */
+
 	return_tuple = (HeapTuple) palloc((Size) pg_class_tuple->t_len);
 	memmove((char *) return_tuple,
 		(char *) pg_class_tuple, 
@@ -373,13 +373,13 @@ scan_pg_rel_seq(RelationBuildDescInfo buildinfo)
 	ReleaseBuffer(buf);
     }
     
-    /* all done */
+     all done
     heap_endscan(pg_class_scan);
     if (!IsInitProcessingMode())
 	RelationUnsetLockForRead(pg_class_desc);
     heap_close(pg_class_desc);
     
-    return return_tuple;
+    return return_tuple;*/
 }
 
 static HeapTuple
@@ -388,7 +388,7 @@ scan_pg_rel_ind(RelationBuildDescInfo buildinfo)
     Relation pg_class_desc;
     HeapTuple return_tuple;
     
-    pg_class_desc = heap_openr(RelationRelationName);
+    /*pg_class_desc = heap_openr(RelationRelationName);
     if (!IsInitProcessingMode())
 	RelationSetLockForRead(pg_class_desc);
     
@@ -404,15 +404,15 @@ scan_pg_rel_ind(RelationBuildDescInfo buildinfo)
 	
     default:
 	elog(WARN, "ScanPgRelation: bad buildinfo");
-	/* XXX I hope this is right.  It seems better than returning
-	 * an uninitialized value */
+	 XXX I hope this is right.  It seems better than returning
+	 * an uninitialized value
 	return_tuple = NULL;
     }
     
-    /* all done */
+     all done
     if (!IsInitProcessingMode())
 	RelationUnsetLockForRead(pg_class_desc);
-    heap_close(pg_class_desc);
+    heap_close(pg_class_desc);*/
     
     return return_tuple;
 }
@@ -503,23 +503,23 @@ build_tupdesc_seq(RelationBuildDescInfo buildinfo,
      *	form a scan key
      * ----------------
      */
-    ScanKeyEntryInitialize(&key, 0, 
+    /*ScanKeyEntryInitialize(&key, 0,
                            Anum_pg_attribute_attrelid,
                            ObjectIdEqualRegProcedure,
                            ObjectIdGetDatum(relation->rd_id));
     
-    /* ----------------
+     ----------------
      *	open pg_attribute and begin a scan
      * ----------------
-     */
+
     pg_attribute_desc = heap_openr(AttributeRelationName);
     pg_attribute_scan =
 	heap_beginscan(pg_attribute_desc, 0, NowTimeQual, 1, &key);
     
-    /* ----------------
+     ----------------
      *	add attribute data to relation->rd_att
      * ----------------
-     */
+
     need = natts;
     pg_attribute_tuple = heap_getnext(pg_attribute_scan, 0, (Buffer *) NULL);
     while (HeapTupleIsValid(pg_attribute_tuple) && need > 0) {
@@ -542,12 +542,12 @@ build_tupdesc_seq(RelationBuildDescInfo buildinfo,
 	elog(WARN, "catalog is missing %d attribute%s for relid %d",
 	     need, (need == 1 ? "" : "s"), relation->rd_id);
     
-    /* ----------------
+     ----------------
      *	end the scan and close the attribute relation
      * ----------------
-     */
+
     heap_endscan(pg_attribute_scan);
-    heap_close(pg_attribute_desc);
+    heap_close(pg_attribute_desc);*/
 }
 
 static void
@@ -733,137 +733,137 @@ RelationBuildDesc(RelationBuildDescInfo buildinfo)
     Oid			relid;
     Oid			relam;
     Form_pg_class	relp;
- //    AttributeTupleForm	attp = NULL;
-    
- //    MemoryContext	oldcxt;
-    
- //    HeapTuple		pg_class_tuple;
-    
- //    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
-    
- //    /* ----------------
- //     *	find the tuple in pg_class corresponding to the given relation id
- //     * ----------------
- //     */
- //    pg_class_tuple = ScanPgRelation(buildinfo);
-    
- //    /* ----------------
- //     *	if no such tuple exists, return NULL
- //     * ----------------
- //     */
- //    if (! HeapTupleIsValid(pg_class_tuple)) {
-	
-	// MemoryContextSwitchTo(oldcxt); 
-	
-	// return NULL;
- //    }
-    
- //    /* ----------------
- //     *	get information from the pg_class_tuple
- //     * ----------------
- //     */
- //    relid = pg_class_tuple->t_oid;
- //    relp = (Form_pg_class) GETSTRUCT(pg_class_tuple);
- //    natts = relp->relnatts;
-    
- //    /* ----------------
- //     *	allocate storage for the relation descriptor,
- //     *  initialize relation->rd_rel and get the access method id.
- //     * ----------------
- //     */
- //    relation = AllocateRelationDesc(natts, relp);
- //    relam = relation->rd_rel->relam;
-    
- //    /* ----------------
- //     *	initialize the relation's relation id (relation->rd_id)
- //     * ----------------
- //     */
- //    relation->rd_id = relid;
-    
- //    /* ----------------
- //     *	initialize relation->rd_refcnt
- //     * ----------------
- //     */
- //    RelationSetReferenceCount(relation, 1);
-    
- //    /* ----------------
- //     *   normal relations are not nailed into the cache
- //     * ----------------
- //     */
- //    relation->rd_isnailed = false;
-    
- //    /* ----------------
- //     *	initialize the access method information (relation->rd_am)
- //     * ----------------
- //     */
- //    if (OidIsValid(relam)) {
-	// relation->rd_am = (Form_pg_am)
-	//     AccessMethodObjectIdGetAccessMethodTupleForm(relam);
- //    }
-    
- //     ----------------
- //     *	initialize the tuple descriptor (relation->rd_att).
- //     *  remember, rd_att is an array of attribute pointers that lives
- //     *  off the end of the relation descriptor structure so space was
- //     *  already allocated for it by AllocateRelationDesc.
- //     * ----------------
-     
- //    RelationBuildTupleDesc(buildinfo, relation, attp, natts);
+	AttributeTupleForm	attp = NULL;
 
- //    /* ----------------
- //     *  initialize rules that affect this relation
- //     * ----------------
- //     */
- //    if (relp->relhasrules) {
-	// RelationBuildRuleLock(relation);
- //    } else {
-	// relation->rd_rules = NULL;
- //    }
+	MemoryContext	oldcxt;
+
+	HeapTuple		pg_class_tuple;
+
+	oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
+
+	/* ----------------
+	*	find the tuple in pg_class corresponding to the given relation id
+	* ----------------
+	*/
+	pg_class_tuple = ScanPgRelation(buildinfo);
+	
+	/* ----------------
+	*	if no such tuple exists, return NULL
+	* ----------------
+	*/
+	if (! HeapTupleIsValid(pg_class_tuple)) {
+	
+		MemoryContextSwitchTo(oldcxt);
+
+		return NULL;
+	}
     
- //    /* ----------------
- //     *	initialize index strategy and support information for this relation
- //     * ----------------
- //     */
- //    if (OidIsValid(relam)) {
-	// IndexedAccessMethodInitialize(relation);
- //    }
+     /* ----------------
+      *	get information from the pg_class_tuple
+      * ----------------
+      */
+     relid = pg_class_tuple->t_oid;
+     relp = (Form_pg_class) GETSTRUCT(pg_class_tuple);
+     natts = relp->relnatts;
     
- //    /* ----------------
- //     *	initialize the relation lock manager information
- //     * ----------------
- //     */
- //    RelationInitLockInfo(relation); /* see lmgr.c */
+     /* ----------------
+      *	allocate storage for the relation descriptor,
+      *  initialize relation->rd_rel and get the access method id.
+      * ----------------
+      */
+     relation = AllocateRelationDesc(natts, relp);
+     relam = relation->rd_rel->relam;
     
- //    /* ----------------
- //     *	open the relation and assign the file descriptor returned
- //     *  by the storage manager code to rd_fd.
- //     * ----------------
- //     */
- //    fd = smgropen(relp->relsmgr, relation);
+     /* ----------------
+      *	initialize the relation's relation id (relation->rd_id)
+      * ----------------
+      */
+     relation->rd_id = relid;
     
- //    Assert (fd >= -1);
- //    if (fd == -1)
-	// elog(NOTICE, "RelationIdBuildRelation: smgropen(%s): %m",
-	//      &relp->relname);
+     /* ----------------
+      *	initialize relation->rd_refcnt
+      * ----------------
+      */
+     RelationSetReferenceCount(relation, 1);
     
- //    relation->rd_fd = fd;
+     /* ----------------
+      *   normal relations are not nailed into the cache
+      * ----------------
+      */
+     relation->rd_isnailed = false;
     
- //    /* ----------------
- //     *	insert newly created relation into proper relcaches,
- //     *  restore memory context and return the new reldesc.
- //     * ----------------
- //     */
+     /* ----------------
+      *	initialize the access method information (relation->rd_am)
+      * ----------------
+      */
+     if (OidIsValid(relam)) {
+	 relation->rd_am = (Form_pg_am)
+	     AccessMethodObjectIdGetAccessMethodTupleForm(relam);
+     }
     
- //    RelationCacheInsert(relation);
+/*      ----------------
+      *	initialize the tuple descriptor (relation->rd_att).
+      *  remember, rd_att is an array of attribute pointers that lives
+      *  off the end of the relation descriptor structure so space was
+      *  already allocated for it by AllocateRelationDesc.
+     * ----------------*/
+     
+     RelationBuildTupleDesc(buildinfo, relation, attp, natts);
+
+     /* ----------------
+      *  initialize rules that affect this relation
+      * ----------------
+      */
+     if (relp->relhasrules) {
+	 RelationBuildRuleLock(relation);
+     } else {
+	 relation->rd_rules = NULL;
+     }
     
- //    /* -------------------
- //     *  free the memory allocated for pg_class_tuple
- //     *  and for lock data pointed to by pg_class_tuple
- //     * -------------------
- //     */
- //    pfree(pg_class_tuple);
+     /* ----------------
+      *	initialize index strategy and support information for this relation
+      * ----------------
+      */
+     if (OidIsValid(relam)) {
+	 IndexedAccessMethodInitialize(relation);
+     }
     
- //    MemoryContextSwitchTo(oldcxt);
+     /* ----------------
+      *	initialize the relation lock manager information
+      * ----------------
+      */
+     RelationInitLockInfo(relation); /* see lmgr.c */
+    
+     /* ----------------
+      *	open the relation and assign the file descriptor returned
+      *  by the storage manager code to rd_fd.
+      * ----------------
+      */
+     fd = smgropen(relp->relsmgr, relation);
+    
+     Assert (fd >= -1);
+     if (fd == -1)
+	 elog(NOTICE, "RelationIdBuildRelation: smgropen(%s): %m",
+	      &relp->relname);
+    
+     relation->rd_fd = fd;
+    
+     /* ----------------
+      *	insert newly created relation into proper relcaches,
+      *  restore memory context and return the new reldesc.
+      * ----------------
+      */
+    
+     RelationCacheInsert(relation);
+    
+     /* -------------------
+      *  free the memory allocated for pg_class_tuple
+      *  and for lock data pointed to by pg_class_tuple
+      * -------------------
+      */
+     pfree(pg_class_tuple);
+    
+     MemoryContextSwitchTo(oldcxt);
     
     return relation;
 }
@@ -871,33 +871,33 @@ RelationBuildDesc(RelationBuildDescInfo buildinfo)
 static void
 IndexedAccessMethodInitialize(Relation relation)
 {
-    IndexStrategy 	strategy;
-    RegProcedure	*support;
-    int			natts;
-    Size 		stratSize;
-    Size		supportSize;
-    uint16 		relamstrategies;
-    uint16		relamsupport;
-    
-    natts = relation->rd_rel->relnatts;
-    relamstrategies = relation->rd_am->amstrategies;
-    stratSize = AttributeNumberGetIndexStrategySize(natts, relamstrategies);
-    strategy = (IndexStrategy) palloc(stratSize);
-    relamsupport = relation->rd_am->amsupport;
-    
-    if (relamsupport > 0) {
-	supportSize = natts * (relamsupport * sizeof (RegProcedure));
-	support = (RegProcedure *) palloc(supportSize);
-    } else {
-	support = (RegProcedure *) NULL;
-    }
-    
-    IndexSupportInitialize(strategy, support,
-			   relation->rd_att->attrs[0]->attrelid,
-			   relation->rd_rel->relam,
-			   relamstrategies, relamsupport, natts);
-    
-    RelationSetIndexSupport(relation, strategy, support);
+//    IndexStrategy 	strategy;
+//    RegProcedure	*support;
+//    int			natts;
+//    Size 		stratSize;
+//    Size		supportSize;
+//    uint16 		relamstrategies;
+//    uint16		relamsupport;
+//
+//    natts = relation->rd_rel->relnatts;
+//    relamstrategies = relation->rd_am->amstrategies;
+//    stratSize = AttributeNumberGetIndexStrategySize(natts, relamstrategies);
+//    strategy = (IndexStrategy) palloc(stratSize);
+//    relamsupport = relation->rd_am->amsupport;
+//
+//    if (relamsupport > 0) {
+//	supportSize = natts * (relamsupport * sizeof (RegProcedure));
+//	support = (RegProcedure *) palloc(supportSize);
+//    } else {
+//	support = (RegProcedure *) NULL;
+//    }
+//
+//    IndexSupportInitialize(strategy, support,
+//			   relation->rd_att->attrs[0]->attrelid,
+//			   relation->rd_rel->relam,
+//			   relamstrategies, relamsupport, natts);
+//
+//    RelationSetIndexSupport(relation, strategy, support);
 }
 
 /* --------------------------------
@@ -1024,7 +1024,7 @@ IndexedAccessMethodInitialize(Relation relation)
  *	do not go to the disk.  this is used by BlockPrepareFile()
  *	and RelationIdGetRelation below.
  * --------------------------------
- */
+
 Relation
 RelationIdCacheGetRelation(Oid relationId)
 {
@@ -1044,7 +1044,7 @@ RelationIdCacheGetRelation(Oid relationId)
     }
     
     return(rd);
-}
+}*/
 
 /* --------------------------------
  *	RelationNameCacheGetRelation
@@ -1447,61 +1447,44 @@ RelationPurgeLocalRelation(bool xactCommitted)
 
 #define INITRELCACHESIZE	400
 
-// void
-// RelationInitialize(void)
-// {
-//     MemoryContext		oldcxt;
-//     HASHCTL			ctl;
+void
+RelationInitialize(void)
+{
+    MemoryContext		oldcxt;
+    HASHCTL			ctl;
     
-//     /* ----------------
-//      *	switch to cache memory context
-//      * ----------------
-//      */
-//     if (!CacheCxt)
-// 	CacheCxt = CreateGlobalMemory("Cache");
+    /* ----------------
+     *	switch to cache memory context
+     * ----------------
+     */
+    if (!CacheCxt)
+	CacheCxt = CreateGlobalMemory("Cache");
     
-//     oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
+    oldcxt = MemoryContextSwitchTo((MemoryContext)CacheCxt);
     
-//     /* ----------------
-//      *	create global caches
-//      * ----------------
-//      */
-//     memset(&ctl,0, (int) sizeof(ctl)); 
-//     ctl.keysize = sizeof(NameData);
-//     ctl.datasize = sizeof(Relation); 
-//     RelationNameCache = hash_create(INITRELCACHESIZE, &ctl, HASH_ELEM);
+    /* ----------------
+     *	create global caches
+     * ----------------
+     */
+    memset(&ctl,0, (int) sizeof(ctl)); 
+    ctl.keysize = sizeof(NameData);
+    ctl.datasize = sizeof(Relation); 
+    RelationNameCache = hash_create(INITRELCACHESIZE, &ctl, HASH_ELEM);
     
-//     ctl.keysize = sizeof(Oid);
-//     ctl.hash = tag_hash;
-//     RelationIdCache = hash_create(INITRELCACHESIZE, &ctl, 
-// 				  HASH_ELEM | HASH_FUNCTION);
+    ctl.keysize = sizeof(Oid);
+    ctl.hash = tag_hash;
+    RelationIdCache = hash_create(INITRELCACHESIZE, &ctl, 
+				  HASH_ELEM | HASH_FUNCTION);
     
-//      ----------------
-//      *	initialize the cache with pre-made relation descriptors
-//      *  for some of the more important system relations.  These
-//      *  relations should always be in the cache.
-//      * ----------------
+     /*----------------
+     *	initialize the cache with pre-made relation descriptors
+     *  for some of the more important system relations.  These
+     *  relations should always be in the cache.
+     * ----------------
+     */
      
-//     formrdesc(RelationRelationName, Natts_pg_class, Desc_pg_class);
-//     formrdesc(AttributeRelationName, Natts_pg_attribute, Desc_pg_attribute);
-//     formrdesc(ProcedureRelationName, Natts_pg_proc, Desc_pg_proc);
-//     formrdesc(TypeRelationName, Natts_pg_type, Desc_pg_type);
-//     formrdesc(VariableRelationName, Natts_pg_variable, Desc_pg_variable);
-//     formrdesc(LogRelationName, Natts_pg_log, Desc_pg_log);
-//     formrdesc(TimeRelationName, Natts_pg_time, Desc_pg_time);
-
-//     /*
-//      *  If this isn't initdb time, then we want to initialize some index
-//      *  relation descriptors, as well.  The descriptors are for pg_attnumind
-//      *  (to make building relation descriptors fast) and possibly others,
-//      *  as they're added.
-//      */
-    
-//     if (!IsBootstrapProcessingMode())
-// 	init_irels();
-    
-//     MemoryContextSwitchTo(oldcxt);
-// }
+    MemoryContextSwitchTo(oldcxt);
+}
 
 /*
  *  init_irels(), write_irels() -- handle special-case initialization of

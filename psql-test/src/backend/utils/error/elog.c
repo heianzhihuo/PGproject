@@ -13,6 +13,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
 #include <fcntl.h>
 #ifndef O_RDONLY
@@ -20,7 +21,7 @@
 #endif /* O_RDONLY */
 #include <sys/types.h>
 #include <stdarg.h>
-#include <errno.h>
+
 #include <unistd.h>
 #include <signal.h>
 
@@ -42,146 +43,106 @@ static int	ElogDebugIndentLevel = 0;
 void
 elog(int lev, const char *fmt, ... )
 {
-//     va_list ap;
-//     char		buf[ELOG_MAXLEN], line[ELOG_MAXLEN];
-//     register char	*bp;
-//     register const char *cp;
+    va_list ap;
+    char		buf[ELOG_MAXLEN], line[ELOG_MAXLEN];
+    register char	*bp;
+    register const char *cp;
 
-//     time_t	time();
-// #ifdef ELOG_TIMESTAMPS
-//     time_t	tim;
-// #endif
-//     int		len;
-//     int		i = 0;
+    time_t	time();
+#ifdef ELOG_TIMESTAMPS
+    time_t	tim;
+#endif
+    int		len;
+    int		i = 0;
     
-//     va_start(ap, fmt);
-//     if (lev == DEBUG && Debugfile < 0) {
-// 	return;
-//     }
-//     switch (lev) {
-//     case NOIND:
-// 	i = ElogDebugIndentLevel-1;
-// 	if (i < 0) i = 0;
-// 	if (i > 30) i = i%30;
-// 	cp = "DEBUG:";
-// 	break;
-//     case DEBUG:
-// 	i = ElogDebugIndentLevel;
-// 	if (i < 0) i = 0;
-// 	if (i > 30) i = i%30;
-// 	cp = "DEBUG:";
-// 	break;
-//     case NOTICE:
-// 	cp = "NOTICE:";
-// 	break;
-//     case WARN:
-// 	cp = "WARN:";
-// 	break;
-//     default:
-// 	sprintf(line, "FATAL %d:", lev);
-// 	cp = line;
-//     }
-// #ifdef ELOG_TIMESTAMPS
-//     time(&tim);
-//     strcat(strcpy(buf, cp), ctime(&tim)+4);
-//     bp = buf+strlen(buf)-6;
-//     *bp++ = ':';
-// #else
-//     strcpy(buf,cp);
-//     bp = buf+strlen(buf);
-// #endif
-//     while (i-- >0) *bp++ = ' ';
-//     for (cp = fmt; *cp; cp++)
-// 	if (*cp == '%' && *(cp+1) == 'm') {
-// 	    if (errno < sys_nerr && errno >= 0)
-// 		strcpy(bp, sys_errlist[errno]);
-// 	    else
-// 		sprintf(bp, "error %d", errno);
-// 	    bp += strlen(bp);
-// 	    cp++;
-// 	} else
-// 	    *bp++ = *cp;
-//     *bp = '\0';
-//     vsprintf(line, buf, ap);
-//     va_end(ap);
-//     len = strlen(strcat(line, "\n"));
-//     if (Debugfile > -1)
-// 	write(Debugfile, line, len);
-//     if (lev == DEBUG || lev == NOIND)
-// 	return;
+	printf("Error\n");
+    switch (lev) {
+    case NOIND:
+	i = ElogDebugIndentLevel-1;
+	if (i < 0) i = 0;
+	if (i > 30) i = i%30;
+	cp = "DEBUG:";
+	break;
+    case DEBUG:
+	i = ElogDebugIndentLevel;
+	if (i < 0) i = 0;
+	if (i > 30) i = i%30;
+	cp = "DEBUG:";
+	break;
+    case NOTICE:
+	cp = "NOTICE:";
+	break;
+    case WARN:
+	cp = "WARN:";
+	break;
+    default:
+	sprintf(line, "FATAL %d:", lev);
+	cp = line;
+    }
+#ifdef ELOG_TIMESTAMPS
+    time(&tim);
+    strcat(strcpy(buf, cp), ctime(&tim)+4);
+    bp = buf+strlen(buf)-6;
+    *bp++ = ':';
+#else
+    strcpy(buf,cp);
+    bp = buf+strlen(buf);
+#endif
+    while (i-- >0) *bp++ = ' ';
+    for (cp = fmt; *cp; cp++)
+	if (*cp == '%' && *(cp+1) == 'm') {
+	    if ( errno >= 0)
+		strcpy(bp, strerror(errno));
+	    else
+		sprintf(bp, "error %d", errno);
+	    bp += strlen(bp);
+	    cp++;
+	} else
+	    *bp++ = *cp;
+    *bp = '\0';
+    vsprintf(line, buf, ap);
+    va_end(ap);
+    len = strlen(strcat(line, "\n"));
+    if (Debugfile > -1)
+	write(Debugfile, line, len);
+    if (lev == DEBUG || lev == NOIND)
+	return;
+    
+    printf("%s\n",line);
+    
+    /*  If there's an error log file other than our channel to the
+     *  front-end program, write to it first.  This is important
+     *  because there's a bug in the socket code on ultrix.  If the
+     *  front end has gone away (so the channel to it has been closed
+     *  at the other end), then writing here can cause this backend
+     *  to exit without warning -- that is, write() does an exit().
+     *  In this case, our only hope of finding out what's going on
+     *  is if Err_file was set to some disk log.  This is a major pain.
+     */
+    
+    if (Err_file > -1 && Debugfile != Err_file) {
+	if (write(Err_file, line, len) < 0) {
+	    
+	    exitpg(lev);
+	}
+	fsync(Err_file);
+    }
+    
+
     
     
-//      *  If there's an error log file other than our channel to the
-//      *  front-end program, write to it first.  This is important
-//      *  because there's a bug in the socket code on ultrix.  If the
-//      *  front end has gone away (so the channel to it has been closed
-//      *  at the other end), then writing here can cause this backend
-//      *  to exit without warning -- that is, write() does an exit().
-//      *  In this case, our only hope of finding out what's going on
-//      *  is if Err_file was set to some disk log.  This is a major pain.
-     
+    if (lev == FATAL) {
+	/*
+	 * Assume that if we have detected the failure we can
+	 * exit with a normal exit status.  This will prevent
+	 * the postmaster from cleaning up when it's not needed.
+	 */
+	exitpg(0);
+    }
     
-//     if (Err_file > -1 && Debugfile != Err_file) {
-// 	if (write(Err_file, line, len) < 0) {
-// 	    write(open("/dev/console", O_WRONLY, 0666), line, len);
-// 	    fflush(stdout);
-// 	    fflush(stderr);
-// 	    exitpg(lev);
-// 	}
-// 	fsync(Err_file);
-//     }
-    
-// #ifndef PG_STANDALONE
-//     /* Send IPC message to the front-end program */
-//     //if (Pfout != NULL && lev > DEBUG) {
-// 	if (lev > DEBUG) {
-// 	/* notices are not exactly errors, handle it differently */
-// 	if (lev == NOTICE) 
-// 	    pq_putnchar("N", 1);
-// 	else
-// 	    pq_putnchar("E", 1);
-// 	/* pq_putint(-101, 4);*/	/* should be query id */ 
-// 	pq_putstr(line);
-// 	pq_flush();
-//     }
-// #endif /* !PG_STANDALONE */
-    
-//     if (lev == WARN) {
-//         extern int InWarn;
-// 	ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
-//         if (!InWarn) {
-// #ifndef WIN32
-// 	    kill(getpid(), 1);	/* abort to traffic cop */
-// 	    pause();
-// #else
-// 	    longjmp(Warn_restart, 1);
-// #endif /* WIN32 */
-//         }
-// 	/*
-// 	 * The pause(3) is just to avoid race conditions where the
-// 	 * thread of control on an MP system gets past here (i.e.,
-// 	 * the signal is not received instantaneously).
-// 	 */
-//     }
-    
-//     if (lev == FATAL) {
-// 	/*
-// 	 * Assume that if we have detected the failure we can
-// 	 * exit with a normal exit status.  This will prevent
-// 	 * the postmaster from cleaning up when it's not needed.
-// 	 */
-// 	fflush(stdout);
-// 	fflush(stderr);
-// 	ProcReleaseSpins(NULL);	/* get rid of spinlocks we hold */
-// 	ProcReleaseLocks();	/* get rid of real locks we hold */
-// 	exitpg(0);
-//     }
-    
-//     if (lev > FATAL) {
-// 	fflush(stdout);
-// 	fflush(stderr);
-// 	exitpg(lev);
-//     }
+    if (lev > FATAL) {
+	exitpg(lev);
+    }
 }
 
 #ifndef PG_STANDALONE

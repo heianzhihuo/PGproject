@@ -456,7 +456,8 @@ hash_search(HTAB *hashp,
 	BUCKET_INDEX currIndex;
 	BUCKET_INDEX *prevIndex;
     } saveState;
-    
+	
+
     Assert((hashp && keyPtr));
     Assert((action == HASH_FIND) || (action == HASH_REMOVE) || (action == HASH_ENTER) || (action == HASH_FIND_SAVE) || (action == HASH_REMOVE_SAVED));
     

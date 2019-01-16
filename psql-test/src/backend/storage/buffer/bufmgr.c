@@ -70,7 +70,7 @@
 #include "utils/hsearch.h"
 #include "utils/palloc.h"
 #include "utils/memutils.h"
-#include "utils/relcache.h"
+//#include "utils/relcache.h"
 #include "executor/execdebug.h"	/* for NDirectFileRead */
 #include "catalog/catalog.h"
 
@@ -212,19 +212,21 @@ ReadBufferWithBufferLock(Relation reln,
     int		status;
     bool	found;
     bool	isLocalBuf;
-
+	
     extend = (blockNum == P_NEW);
     isLocalBuf = reln->rd_islocal;
-
+	
+	ReadBufferCount++;
     if (isLocalBuf) {
 	bufHdr = LocalBufferAlloc(reln, blockNum, &found);
     } else {
-	ReadBufferCount++;
-
+	
+	
 	/* lookup the buffer.  IO_IN_PROGRESS is set if the requested
 	 * block is not currently in memory.
 	 */
 	bufHdr = BufferAlloc(reln, blockNum, &found, bufferLockHeld);
+
 	if (found) BufferHitCount++;
     }
 
@@ -240,7 +242,7 @@ ReadBufferWithBufferLock(Relation reln,
 	 * want this extended.
 	 */
 	if (extend) {
-	    /* new buffers are zero-filled */
+	    /* new buffers are zero-filled */		
 	    memset((char *) MAKE_PTR(bufHdr->data), 0, BLCKSZ);
 	    (void) smgrextend(bufHdr->bufsmgr, reln,
 			      (char *) MAKE_PTR(bufHdr->data));
@@ -255,6 +257,7 @@ ReadBufferWithBufferLock(Relation reln,
      */
     if (extend) {
 	/* new buffers are zero-filled */
+	
 	(void) memset((char *) MAKE_PTR(bufHdr->data), 0, BLCKSZ);
 	status = smgrextend(bufHdr->bufsmgr, reln,
 			    (char *) MAKE_PTR(bufHdr->data));
@@ -302,7 +305,7 @@ ReadBufferWithBufferLock(Relation reln,
     SpinRelease(BufMgrLock);
     
     if (status == SM_FAIL)
-	return(InvalidBuffer);
+		return(InvalidBuffer);
     
     return(BufferDescriptorGetBuffer(bufHdr));
 }
@@ -333,8 +336,8 @@ BufferAlloc(Relation reln,
 	blockNum = smgrnblocks(reln->rd_rel->relsmgr, reln);
     }
     
+	
     INIT_BUFFERTAG(&newTag,reln,blockNum);
-    
     if (!bufferLockHeld)
 	SpinAcquire(BufMgrLock);
     
@@ -641,23 +644,23 @@ int
 WriteBuffer(Buffer buffer)
 {
     BufferDesc	*bufHdr;
-
+	
     if (WriteMode == BUFFER_FLUSH_WRITE) {
 	return (FlushBuffer (buffer, TRUE));
     } else {
-
+	
 	if (BufferIsLocal(buffer))
 	    return WriteLocalBuffer(buffer, TRUE);
     
 	if (BAD_BUFFER_ID(buffer))
 	    return(FALSE);
-
-	bufHdr = &BufferDescriptors[buffer-1];
 	
+	bufHdr = &BufferDescriptors[buffer-1];
 	SpinAcquire(BufMgrLock);
 	Assert(bufHdr->refcount > 0);
 	bufHdr->flags |= (BM_DIRTY | BM_JUST_DIRTIED);
 	UnpinBuffer(bufHdr);
+	
 	SpinRelease(BufMgrLock);
     }
     return(TRUE);
@@ -743,7 +746,8 @@ FlushBuffer(Buffer buffer, bool release)
     bufdb = bufHdr->tag.relId.dbId;
     
     Assert (bufdb == MyDatabaseId || bufdb == (Oid) NULL);
-    bufrel = RelationIdCacheGetRelation (bufHdr->tag.relId.relId);
+    bufrel = RelationIdCacheGetRelation (bufHdr);
+	//bufrel = RelationIdCacheGetRelation (bufHdr->tag.relId.relId);
     Assert (bufrel != (Relation) NULL);
 
     /* To check if block content changed while flushing. - vadim 01/17/97 */
@@ -829,7 +833,7 @@ ReleaseAndReadBuffer(Buffer buffer,
 {
     BufferDesc	*bufHdr;
     Buffer retbuf;
-
+	
     if (BufferIsLocal(buffer)) {
 	Assert(LocalRefCount[-buffer - 1] > 0);
 	LocalRefCount[-buffer - 1]--;
@@ -885,13 +889,15 @@ BufferSync()
     int status;
     
     SpinAcquire(BufMgrLock);
+	
     for (i=0, bufHdr = BufferDescriptors; i < NBuffers; i++, bufHdr++) {
 	if ((bufHdr->flags & BM_VALID) && (bufHdr->flags & BM_DIRTY)) {
 	    bufdb = bufHdr->tag.relId.dbId;
 	    bufrel = bufHdr->tag.relId.relId;
-	    if (bufdb == MyDatabaseId || bufdb == (Oid) 0) {
-		reln = RelationIdCacheGetRelation(bufrel);
 		
+	    if (bufdb == MyDatabaseId || bufdb == (Oid) 0) {
+		//reln = RelationIdCacheGetRelation(bufrel);
+		reln = RelationIdCacheGetRelation(bufHdr);
 		/* 
 		 *  We have to pin buffer to keep anyone from stealing it
 		 *  from the buffer pool while we are flushing it or
@@ -901,6 +907,7 @@ BufferSync()
 		 *  getting smgr status of some other block and
 		 *  clearing BM_DIRTY of ...		- VAdim 09/16/96
 		 */
+		
 		PinBuffer(bufHdr);
 		if (bufHdr->flags & BM_IO_IN_PROGRESS)
 		{
@@ -931,7 +938,14 @@ BufferSync()
 #ifndef OPTIMIZE_SINGLE
 		SpinRelease(BufMgrLock);
 #endif /* OPTIMIZE_SINGLE */
+		
 		if (reln == (Relation) NULL) {
+			printf("+_+++++++++++\n");
+			printf("DNAME:%s\n",bufHdr->sb_dbname);
+			printf("%d\n",bufHdr->tag.relId.dbId);
+			printf("%d\n",MyDatabaseId);
+			printf("DNAME:%s\n",bufHdr->sb_relname);
+			printf("DNAME:%s\n",MAKE_PTR(bufHdr->data));
 		    status = smgrblindwrt(bufHdr->bufsmgr, bufHdr->sb_dbname,
 					  bufHdr->sb_relname, bufdb, bufrel,
 					  bufHdr->tag.blockNum,
@@ -941,6 +955,7 @@ BufferSync()
 				       bufHdr->tag.blockNum,
 				       (char *) MAKE_PTR(bufHdr->data));
 		}
+return;
 #ifndef OPTIMIZE_SINGLE
 		SpinAcquire(BufMgrLock);
 #endif /* OPTIMIZE_SINGLE */
@@ -1176,38 +1191,6 @@ BufferGetBlockNumber(Buffer buffer)
 	return (BufferDescriptors[buffer-1].tag.blockNum);
 }
 
-/*
- * BufferGetRelation --
- *	Returns the relation desciptor associated with a buffer.
- *
- * Note:
- *	Assumes buffer is valid.
- */
-// Relation
-// BufferGetRelation(Buffer buffer)
-// {
-//     Relation    relation;
-//     Oid		relid;
-
-//     Assert(BufferIsValid(buffer));
-//     Assert(!BufferIsLocal(buffer));	/* not supported for local buffers */
-    
-//     /* XXX should be a critical section */
-//     relid = LRelIdGetRelationId(BufferDescriptors[buffer-1].tag.relId);
-//     relation = RelationIdGetRelation(relid);
-    
-//     RelationDecrementReferenceCount(relation);
-    
-//     if (RelationHasReferenceCountZero(relation)) {
-// 	/*
-// 	  elog(NOTICE, "BufferGetRelation: 0->1");
-// 	  */
-	
-//         RelationIncrementReferenceCount(relation);
-//     }
-    
-//     return (relation);
-// }
 
 /*
  * BufferReplace
@@ -1235,7 +1218,8 @@ BufferReplace(BufferDesc *bufHdr, bool bufferLockHeld)
     bufrel = bufHdr->tag.relId.relId;
     
     if (bufdb == MyDatabaseId || bufdb == (Oid) NULL)
-	reln = RelationIdCacheGetRelation(bufrel);
+	//reln = RelationIdCacheGetRelation(bufrel);
+	reln = RelationIdCacheGetRelation(bufHdr);
     else
 	reln = (Relation) NULL;
 

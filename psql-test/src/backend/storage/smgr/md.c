@@ -98,13 +98,13 @@ mdinit()
 int
 mdcreate(Relation reln)
 {
-    int fd, vfd;
+    int fd, vfd = 0;
     int tmp;
     char *path;
-    extern bool IsBootstrapProcessingMode();
 
     path = relpath(&(reln->rd_rel->relname.data[0]));
     fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
+	
 
     /*
      *  If the file already exists and is empty, we pretend that the
@@ -112,7 +112,8 @@ mdcreate(Relation reln)
      *  because pg_time, pg_variable, and pg_log get created before their
      *  .bki file entries are processed.
      */
-
+	
+	
     if (fd < 0) {
 	if ((fd = FileNameOpenFile(path, O_RDWR, 0600)) >= 0) {
 	    if (!IsBootstrapProcessingMode() &&
@@ -122,7 +123,6 @@ mdcreate(Relation reln)
 	    }
 	}
     }
-
     if (CurFd >= Nfds) {
 	if (_fdvec_ext() == SM_FAIL)
 	    return (-1);
@@ -134,7 +134,7 @@ mdcreate(Relation reln)
     Md_fdvec[CurFd].mdfd_lstbcnt = 0;
 
     vfd = CurFd++;
-
+	
     return (vfd);
 }
 
@@ -210,7 +210,7 @@ mdextend(Relation reln, char *buffer)
 
     if ((pos = FileSeek(v->mdfd_vfd, 0L, SEEK_END)) < 0)
 	return (SM_FAIL);
-
+	
     if (FileWrite(v->mdfd_vfd, buffer, BLCKSZ) != BLCKSZ)
 	return (SM_FAIL);
 
@@ -251,7 +251,7 @@ mdopen(Relation reln)
 
     /* this should only happen during bootstrap processing */
     if (fd < 0)
-	fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
+		fd = FileNameOpenFile(path, O_RDWR|O_CREAT|O_EXCL, 0600);
 
     Md_fdvec[CurFd].mdfd_vfd = fd;
     Md_fdvec[CurFd].mdfd_flags = (uint16) 0;
@@ -262,9 +262,7 @@ mdopen(Relation reln)
     if (Md_fdvec[CurFd].mdfd_lstbcnt > RELSEG_SIZE)
 	elog(FATAL, "segment too big on relopen!");
 #endif
-
     vfd = CurFd++;
-
     return (vfd);
 }
 
@@ -365,6 +363,7 @@ mdwrite(Relation reln, BlockNumber blocknum, char *buffer)
     }
 
     status = SM_SUCCESS;
+	
     if (FileWrite(v->mdfd_vfd, buffer, BLCKSZ) != BLCKSZ)
 	status = SM_FAIL;
 
@@ -400,6 +399,7 @@ mdflush(Relation reln, BlockNumber blocknum, char *buffer)
 
     /* write and sync the block */
     status = SM_SUCCESS;
+	
     if (FileWrite(v->mdfd_vfd, buffer, BLCKSZ) != BLCKSZ
 	|| FileSync(v->mdfd_vfd) < 0)
 	status = SM_FAIL;

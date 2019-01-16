@@ -596,15 +596,15 @@ LDFLAGS_BE= -rdynamic
 endif
 MK_NO_LORDER= true
 
-CC= gcc
+CC= gcc -g
 YACC=	bison -y
 
 # use the regex library
 USE_REGEX= 1
 
-CFLAGS_SL= -fpic
+CFLAGS_SL= -g
 %.so: %.o
-	$(CC) -shared -o $@ $<
+	$(CC) -shared -o  $@ $<
 
 # The Linux gnulib #defines the problem away for you and calls 
 # the BSD routines if you give it the right flags.

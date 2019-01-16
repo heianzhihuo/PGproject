@@ -17,7 +17,7 @@ INCLUDE_OPT = -I../.. \
 
 CFLAGS+=$(INCLUDE_OPT)
 
-OBJS = catcache.o relcache.o
+OBJS = catcache.o relcache.o rel.o
 
 all: SUBSYS.o
 

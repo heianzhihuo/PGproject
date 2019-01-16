@@ -17,7 +17,7 @@ INCLUDE_OPT = -I.. \
 
 CFLAGS+=$(INCLUDE_OPT)
 
-OBJS = main.o
+OBJS = main.o bitmap.o
 
 all: SUBSYS.o
 

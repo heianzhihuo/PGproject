@@ -43,7 +43,7 @@
 #include "utils/builtins.h"
 #include "utils/hsearch.h"
 #include "utils/memutils.h"
-#include "utils/relcache.h"
+//#include "utils/relcache.h"
 #include "executor/execdebug.h"	/* for NDirectFileRead */
 #include "catalog/catalog.h"
 
@@ -111,7 +111,8 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
      * reusing it!
      */
     if (bufHdr->flags & BM_DIRTY) {
-	Relation bufrel = RelationIdCacheGetRelation(bufHdr->tag.relId.relId);
+	//Relation bufrel = RelationIdCacheGetRelation(bufHdr->tag.relId.relId);
+	Relation bufrel = RelationIdCacheGetRelation(bufHdr);
 
 	Assert(bufrel != NULL);
 	
@@ -187,7 +188,8 @@ FlushLocalBuffer(Buffer buffer, bool release)
     bufid = - (buffer + 1);
     bufHdr = &LocalBufferDescriptors[bufid];
     bufHdr->flags &= ~BM_DIRTY;
-    bufrel = RelationIdCacheGetRelation(bufHdr->tag.relId.relId);
+    //bufrel = RelationIdCacheGetRelation(bufHdr->tag.relId.relId);
+	bufrel = RelationIdCacheGetRelation(bufHdr);
 
     Assert(bufrel != NULL);
     smgrflush(bufrel->rd_rel->relsmgr, bufrel, bufHdr->tag.blockNum,
@@ -255,8 +257,8 @@ LocalBufferSync(void)
 #ifdef LBDEBUG
 	    fprintf(stderr, "LB SYNC %d\n", -i-1);
 #endif	    
-	    bufrel = RelationIdCacheGetRelation(buf->tag.relId.relId);
-
+	    //bufrel = RelationIdCacheGetRelation(buf->tag.relId.relId);
+		bufrel = RelationIdCacheGetRelation(buf);
 	    Assert(bufrel != NULL);
 	    
 	    smgrwrite(bufrel->rd_rel->relsmgr, bufrel, buf->tag.blockNum,
@@ -287,3 +289,35 @@ ResetLocalBufferPool(void)
 
     memset(LocalRefCount, 0, sizeof(long) * NLocBuffer);
 }
+
+/*修改来自relcache.c中的RelationIdCacheGetRelation*/
+Relation
+RelationIdCacheGetRelation(BufferDesc *buf)
+{
+	Relation rdesc;
+	int smgr = DEFAULT_SMGR;
+	int len;
+	
+	len = sizeof(RelationData);
+	rdesc = (Relation) palloc(len);//分配空间
+	memset((char *)rdesc, 0,len);//初始化
+
+	rdesc->rd_rel = (Form_pg_class)palloc(sizeof *rdesc->rd_rel);
+	memset((char *)rdesc->rd_rel, 0,sizeof *rdesc->rd_rel);
+	
+	namestrcpy(&(rdesc->rd_rel->relname),buf->sb_relname);//relname
+	
+	rdesc->rd_isnailed = false;
+	rdesc->rd_islocal = false;
+	rdesc->rd_istemp = false;//非临时表
+	rdesc->rd_rel->relsmgr = smgr;//存储管理器选择？
+	
+
+	rdesc->rd_fd = (File)smgropen(smgr, rdesc);
+    rdesc->rd_tmpunlinked = FALSE;
+	return rdesc;
+}
+
+
+
+

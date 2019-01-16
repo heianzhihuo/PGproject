@@ -17,7 +17,7 @@ INCLUDE_OPT = -I../.. \
 
 CFLAGS += $(INCLUDE_OPT)
 
-OBJS = globals.o miscinit.o
+OBJS = globals.o miscinit.o enbl.o
 
 all: SUBSYS.o
 

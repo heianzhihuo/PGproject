@@ -462,6 +462,9 @@ LockAcquire(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
     SpinAcquire(masterLock);
     
     Assert( ltable->lockHash->hash == tag_hash);
+	
+	
+
     lock = (LOCK *)hash_search(ltable->lockHash,(Pointer)lockName,HASH_ENTER,&found);
     
     if (! lock)
@@ -519,7 +522,7 @@ LockAcquire(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
 #endif
     }
 #endif
-
+	
     result = (XIDLookupEnt *)hash_search(xidTable, (Pointer)&item, HASH_ENTER, &found);
     if (!result)
 	{
@@ -576,6 +579,7 @@ LockAcquire(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
 	     */
 	    if (is_user_lock) {
 		if (!result->nHolding) {
+			
 		    SHMQueueDelete(&result->queue);
 		    hash_search(xidTable, (Pointer)&item, HASH_REMOVE, &found);
 		}
@@ -820,6 +824,7 @@ LockRelease(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
     SpinAcquire(masterLock);
     
     Assert( ltable->lockHash->hash == tag_hash);
+	
     lock = (LOCK *)
 	hash_search(ltable->lockHash,(Pointer)lockName,HASH_FIND_SAVE,&found);
     
@@ -881,6 +886,7 @@ LockRelease(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
 	     * ------------------
 	     */
 	    Assert( ltable->lockHash->hash == tag_hash);
+		
 	    lock = (LOCK *) hash_search(ltable->lockHash,
 					(Pointer) &(lock->tag),
 					HASH_REMOVE_SAVED,
@@ -915,7 +921,7 @@ LockRelease(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
 #endif
     }
 #endif
-
+	
     if (! ( result = (XIDLookupEnt *) hash_search(xidTable,
 						  (Pointer)&item,
 						  HASH_FIND_SAVE,
@@ -959,7 +965,9 @@ LockRelease(LockTableId tableId, LOCKTAG *lockName, LOCKT lockt)
 #endif
 	    if (result->queue.next != INVALID_OFFSET)
 		SHMQueueDelete(&result->queue);
+		
 	    if (! (result = (XIDLookupEnt *)
+			
 		   hash_search(xidTable, (Pointer)&item, HASH_REMOVE_SAVED, &found)) ||
 		! found)
 		{
@@ -1214,6 +1222,7 @@ LockReleaseAll(LockTableId tableId, SHM_QUEUE *lockQueue)
 #ifdef USER_LOCKS
 	    SHMQueueDelete(&xidLook->queue);
 #endif
+		
 	    if ((! hash_search(ltable->xidHash, (Pointer)xidLook, HASH_REMOVE, &found))
 		|| !found)
 		{

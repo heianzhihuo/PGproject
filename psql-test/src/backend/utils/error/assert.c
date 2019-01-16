@@ -28,6 +28,11 @@ ExceptionalCondition(char* conditionName,
 		     char* fileName,
 		     int lineNumber)
 {
+		printf("\nError:%s",exceptionP->message);
+		printf("\nLine:%d",lineNumber);
+		printf("\nDetail:%s",detail);
+		printf("\nCon:%s",conditionName);
+		printf("\nFile:%s\n",fileName);
 //     //extern char* ExcFileName;	/* XXX */
 //     //extern Index ExcLineNumber;	/* XXX */
     

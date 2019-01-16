@@ -318,30 +318,31 @@ GetUserId()
     return(UserId);
 }
 
-// void
-// SetUserId()
-// {
-//     HeapTuple	userTup;
-//     char *userName;
-    
-//     Assert(!OidIsValid(UserId));	/* only once */
-    
-//     /*
-//      * Don't do scans if we're bootstrapping, none of the system
-//      * catalogs exist yet, and they should be owned by postgres
-//      * anyway.
-//      */
+ void
+ SetUserId()
+ {
+     HeapTuple	userTup;
+     char *userName;
+
+     Assert(!OidIsValid(UserId));	/* only once */
+
+     /*
+      * Don't do scans if we're bootstrapping, none of the system
+      * catalogs exist yet, and they should be owned by postgres
+      * anyway.
+      */
 //     if (IsBootstrapProcessingMode()) {
 // 	UserId = geteuid();
 // 	return;
 //     }
-    
+//
 //     userName = GetPgUserName();
 //     userTup = SearchSysCacheTuple(USENAME, PointerGetDatum(userName),
 // 				  0,0,0);
 //     if (!HeapTupleIsValid(userTup))
 // 	elog(FATAL, "SetUserId: user \"%s\" is not in \"%s\"",
-// 	     userName, 
+// 	     userName,
 // 	     UserRelationName);
 //     UserId = (Oid) ((Form_pg_user) GETSTRUCT(userTup))->usesysid;
-// }
+     UserId = 0;
+ }

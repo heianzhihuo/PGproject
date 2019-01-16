@@ -223,7 +223,7 @@ InitShmem(unsigned int key, unsigned int size)
      */
     memset(item.key, 0, BTABLE_KEYSIZE);
     strncpy(item.key,"BindingTable",BTABLE_KEYSIZE);
-    
+
     result = (BindingEnt *) 
 	hash_search(BindingTable,(char *) &item,HASH_ENTER, &found);
     
@@ -339,15 +339,20 @@ ShmemInitHash(char *name,	/* table string name for binding */
      * calculating pointer values.  The shared memory allocator
      * must be specified.
      */
+	
     infoP->segbase = (long *) ShmemBase;
+	
     infoP->alloc = ShmemAlloc;
     infoP->max_size = max_size;
+
     hash_flags |= HASH_SHARED_MEM;
     
+	
     /* look it up in the binding table */
     location = 
 	ShmemInitStruct(name,my_log2(max_size) + sizeof(HHDR),&found);
     
+
     /* binding table is corrupted.  Let someone else give the 
      * error message since they have more information 
      */
@@ -392,6 +397,7 @@ ShmemPIDLookup(int pid, SHMEM_OFFSET* locationPtr)
     sprintf(item.key,"PID %d",pid);
     
     SpinAcquire(BindingLock);
+
     result = (BindingEnt *) 
 	hash_search(BindingTable,(char *) &item, HASH_ENTER, &found);
     
@@ -435,6 +441,10 @@ ShmemPIDDestroy(int pid)
     sprintf(item.key,"PID %d",pid);
     
     SpinAcquire(BindingLock);
+	
+	printf("Her2\n");
+	printf("ITEM:%c\n",item);
+
     result = (BindingEnt *) 
 	hash_search(BindingTable,(char *) &item, HASH_REMOVE, &found);
     
@@ -475,12 +485,13 @@ ShmemInitStruct(char *name, unsigned long size, bool *foundPtr)
 {
     BindingEnt *	result,item;
     long * structPtr;
-
+	
     strncpy(item.key,name,BTABLE_KEYSIZE);
     item.location = BAD_LOCATION;
-    
+    	
+	
     SpinAcquire(BindingLock);
-    
+   	
     if (! BindingTable) {
 	/* Assert() is a macro now. substitutes inside quotes. */
 	char *strname = "BindingTable";

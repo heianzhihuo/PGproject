@@ -200,14 +200,16 @@ RelationInitLockInfo(Relation relation)
      */
     Assert(RelationIsValid(relation));
     Assert(OidIsValid(RelationGetRelationId(relation)));
-    
+   
     /* ----------------
      *	get information from relation descriptor
      * ----------------
      */
     info = (LockInfo) relation->lockInfo;
     relname = (char *) RelationGetRelationName(relation);
+	 
     relationid = RelationGetRelationId(relation);
+	
     processingVariable = (strcmp(relname, VariableRelationName) == 0);
     
     /* ----------------
